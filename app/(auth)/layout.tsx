@@ -1,5 +1,5 @@
-
 import type { Metadata } from "next";
+import "./auth.css";
 
 export const metadata: Metadata = {
   title: "BillEase POS",

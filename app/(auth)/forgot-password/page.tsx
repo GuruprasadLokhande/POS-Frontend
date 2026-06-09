@@ -3,27 +3,19 @@
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
 import {
-  Mail,
-  Eye,
-  EyeOff,
-  ArrowLeft,
-  KeyRound,
-  ShieldCheck,
-  LockKeyhole,
-  CheckCircle2,
+  Mail, Eye, EyeOff, ArrowLeft,
+  KeyRound, ShieldCheck, LockKeyhole, CheckCircle2,
 } from "lucide-react";
 
-/* ── Step type ───────────────────────────────────────────── */
+/* ── Types ── */
 type Step = "email" | "otp" | "reset" | "done";
 
-/* ── OTP Input ───────────────────────────────────────────── */
+/* ── OTP Input component ── */
 function OtpInput({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !value[i] && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !value[i] && i > 0) refs.current[i - 1]?.focus();
   };
 
   const handleChange = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +35,7 @@ function OtpInput({ value, onChange }: { value: string[]; onChange: (v: string[]
   };
 
   return (
-    <div className="flex gap-3 mb-10">
+    <div className="otp-row">
       {value.map((digit, i) => (
         <input
           key={i}
@@ -55,34 +47,64 @@ function OtpInput({ value, onChange }: { value: string[]; onChange: (v: string[]
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKey(i, e)}
           onPaste={handlePaste}
-          className={[
-            "w-12 h-14 text-center text-xl font-bold rounded-xl border-2 outline-none transition-all duration-200",
-            digit
-              ? "border-[#2b34d1] bg-[#2b34d1]/5 text-[#2b34d1]"
-              : "border-slate-200 bg-slate-50 text-slate-800",
-            "focus:border-[#2b34d1] focus:bg-white focus:shadow-[0_0_0_4px_rgba(43,52,209,0.08)]",
-          ].join(" ")}
+          className={`otp-cell ${digit ? "otp-cell--filled" : ""}`}
         />
       ))}
     </div>
   );
 }
 
-/* ── Main Component ──────────────────────────────────────── */
+/* ── Panel metadata per step ── */
+const PANEL_META: Record<Step, {
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  tip: string;
+}> = {
+  email: {
+    icon: KeyRound,
+    title: "Forgot your\npassword? 🔑",
+    subtitle: "No worries! Enter your registered email and we'll send you a secure reset code.",
+    tip: "Check your spam folder if you don't see the email within 2 minutes.",
+  },
+  otp: {
+    icon: ShieldCheck,
+    title: "Check your\ninbox! 📬",
+    subtitle: "We've sent a 6-digit verification code to your email. Enter it to continue.",
+    tip: "The code expires in 10 minutes. Didn't receive it? You can resend.",
+  },
+  reset: {
+    icon: LockKeyhole,
+    title: "Create a new\npassword 🔒",
+    subtitle: "Choose a strong password with at least 8 characters, numbers, and symbols.",
+    tip: "Never share your password with anyone. BillEase will never ask for it.",
+  },
+  done: {
+    icon: CheckCircle2,
+    title: "All done! 🎉",
+    subtitle: "Your password has been reset successfully. You can now sign in with your new password.",
+    tip: "For security, you'll be signed out from all other devices.",
+  },
+};
+
+const STEPS: Step[] = ["email", "otp", "reset", "done"];
+
+/* ── Main Component ── */
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(Array(6).fill(""));
-  const [showPass, setShowPass] = useState(false);
+
+  const [step, setStep]           = useState<Step>("email");
+  const [email, setEmail]         = useState("");
+  const [otp, setOtp]             = useState(Array(6).fill(""));
+  const [showPass, setShowPass]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [leaving, setLeaving] = useState(false);
+  const [leaving, setLeaving]     = useState(false);
   const [stepLeaving, setStepLeaving] = useState(false);
 
-  const goToLogin = (e: React.MouseEvent) => {
+  const navigate = (href: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     setLeaving(true);
-    setTimeout(() => router.push("/login"), 420);
+    setTimeout(() => router.push(href), 420);
   };
 
   const nextStep = (next: Step) => {
@@ -90,298 +112,226 @@ export default function ForgotPasswordPage() {
     setTimeout(() => {
       setStep(next);
       setStepLeaving(false);
-    }, 300);
+    }, 280);
   };
 
-  /* ── Panel content per step ── */
-  const panelMeta: Record<Step, { icon: React.ElementType; title: string; subtitle: string; tip: string }> = {
-    email: {
-      icon: KeyRound,
-      title: "Forgot your\npassword? 🔑",
-      subtitle: "No worries! Enter your registered email and we'll send you a secure reset code.",
-      tip: "Check your spam folder if you don't see the email within 2 minutes.",
-    },
-    otp: {
-      icon: ShieldCheck,
-      title: "Check your\ninbox! 📬",
-      subtitle: "We've sent a 6-digit verification code to your email. Enter it to continue.",
-      tip: "The code expires in 10 minutes. Didn't receive it? You can resend.",
-    },
-    reset: {
-      icon: LockKeyhole,
-      title: "Create a new\npassword 🔒",
-      subtitle: "Choose a strong password with at least 8 characters, numbers, and symbols.",
-      tip: "Never share your password with anyone. BillEase will never ask for it.",
-    },
-    done: {
-      icon: CheckCircle2,
-      title: "All done! 🎉",
-      subtitle: "Your password has been reset successfully. You can now sign in with your new password.",
-      tip: "For security, you'll be signed out from all other devices.",
-    },
-  };
-
-  const meta = panelMeta[step];
+  const meta     = PANEL_META[step];
   const PanelIcon = meta.icon;
+  const stepIndex = STEPS.indexOf(step);
 
-  const panelCls = leaving ? "panel-leave" : "panel-enter";
-  const formCls  = leaving ? "form-leave-down" : "form-enter";
-  const stepCls  = stepLeaving ? "step-leave" : "step-enter";
+  const panelCls = leaving ? "anim-panel-leave-left" : "anim-panel-enter-left";
+  const formCls  = leaving ? "anim-form-leave-down"  : "anim-form-enter-right";
+  const stepCls  = stepLeaving ? "anim-step-leave"   : "anim-step-enter";
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
-        * { font-family: 'Sora', sans-serif; }
+    <div className="auth-screen">
 
-        @keyframes panelIn    { from { opacity:0; transform:translateX(-40px);  } to { opacity:1; transform:translateX(0); } }
-        @keyframes formIn     { from { opacity:0; transform:translateX(40px);   } to { opacity:1; transform:translateX(0); } }
-        @keyframes panelOut   { from { opacity:1; transform:translateX(0);      } to { opacity:0; transform:translateX(-60px); } }
-        @keyframes formDown   { from { opacity:1; transform:translateY(0);      } to { opacity:0; transform:translateY(40px); } }
-        @keyframes stepIn     { from { opacity:0; transform:translateY(20px);   } to { opacity:1; transform:translateY(0); } }
-        @keyframes stepOut    { from { opacity:1; transform:translateY(0);      } to { opacity:0; transform:translateY(-20px); } }
-        @keyframes panelFade  { from { opacity:0; } to { opacity:1; } }
+      {/* ── LEFT: Blue Panel ── */}
+      <div className={`auth-panel ${panelCls}`}>
 
-        .panel-enter    { animation: panelIn   0.5s  cubic-bezier(0.22,1,0.36,1) both; }
-        .form-enter     { animation: formIn    0.5s  cubic-bezier(0.22,1,0.36,1) 0.06s both; }
-        .panel-leave    { animation: panelOut  0.42s cubic-bezier(0.55,0,1,0.45) both; }
-        .form-leave-down{ animation: formDown  0.38s cubic-bezier(0.55,0,1,0.45) both; }
-        .step-enter     { animation: stepIn    0.35s cubic-bezier(0.22,1,0.36,1) both; }
-        .step-leave     { animation: stepOut   0.25s cubic-bezier(0.55,0,1,0.45) both; }
-        .panel-content  { animation: panelFade 0.4s  ease both; }
+        <div className="auth-panel__arc" style={{ width: 520, height: 520, top: -60,  right: -200 }} />
+        <div className="auth-panel__arc" style={{ width: 420, height: 420, top: 20,   right: -150 }} />
+        <div className="auth-panel__arc" style={{ width: 320, height: 320, top: 80,   right: -100 }} />
+        <div className="auth-panel__arc" style={{ width: 220, height: 220, top: 140,  right: -50  }} />
+        <div className="auth-panel__arc" style={{ width: 120, height: 120, top: 200,  right: 0    }} />
 
-        .arc { position:absolute; border-radius:50%; border:1.5px solid rgba(255,255,255,0.12); pointer-events:none; }
+        {/* Panel content re-animates on each step */}
+        <div key={step} className="auth-panel__top anim-panel-fade">
+          <div className="auth-panel__icon">
+            <PanelIcon size={30} />
+          </div>
 
-        .input-line {
-          border:none; border-bottom:1.5px solid #d1d5db; border-radius:0;
-          background:transparent; padding:10px 0; width:100%;
-          font-size:15px; color:#111; outline:none; transition:border-color 0.2s;
-        }
-        .input-line::placeholder { color:#aaa; }
-        .input-line:focus { border-color:#2b34d1; }
+          <h1 className="auth-panel__title">{meta.title}</h1>
 
-        .progress-dot {
-          width: 8px; height: 8px; border-radius: 50%;
-          transition: all 0.3s ease;
-        }
-      `}</style>
+          <p className="auth-panel__subtitle">{meta.subtitle}</p>
 
-      <div className="flex min-h-screen w-full">
+          <div className="auth-panel__tip">
+            <span className="auth-panel__tip-emoji">💡</span>
+            <p className="auth-panel__tip-text">{meta.tip}</p>
+          </div>
 
-        {/* ── LEFT: Blue Panel ── */}
-        <div className={`relative flex flex-col justify-between w-[48%] min-h-screen bg-[#2b34d1] px-16 py-14 overflow-hidden ${panelCls}`}>
-          <div className="arc" style={{ width:520, height:520, top:-60,  right:-200 }} />
-          <div className="arc" style={{ width:420, height:420, top:20,   right:-150 }} />
-          <div className="arc" style={{ width:320, height:320, top:80,   right:-100 }} />
-          <div className="arc" style={{ width:220, height:220, top:140,  right:-50  }} />
-          <div className="arc" style={{ width:120, height:120, top:200,  right:0    }} />
+          {/* Progress dots */}
+          <div className="auth-panel__dots">
+            {STEPS.map((s) => (
+              <div
+                key={s}
+                className={`auth-panel__dot ${step === s ? "auth-panel__dot--active" : ""}`}
+              />
+            ))}
+            <span className="auth-panel__dot-label">
+              Step {stepIndex + 1} of {STEPS.length}
+            </span>
+          </div>
+        </div>
 
-          {/* Panel content animates per step */}
-          <div key={step} className="relative z-10 panel-content">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center mb-16">
-              <PanelIcon className="w-8 h-8 text-white" />
-            </div>
+        <p className="auth-panel__copyright">© 2024 BillEase POS. All rights reserved.</p>
+      </div>
 
-            <div className="text-white">
-              <h1 className="text-5xl font-extrabold leading-tight mb-6 whitespace-pre-line">
-                {meta.title}
-              </h1>
-              <p className="text-base font-light text-white/75 leading-relaxed max-w-xs mb-10">
-                {meta.subtitle}
+      {/* ── RIGHT: Form Panel ── */}
+      <div className={`auth-form-side auth-form-side--scrollable ${formCls}`}>
+
+        {/* Brand + back link */}
+        <div className="auth-brand-row">
+          <div className="auth-brand">
+            <div className="auth-brand__icon">B</div>
+            <span className="auth-brand__name">BillEase</span>
+          </div>
+          <a href="/login" className="auth-back-link" onClick={navigate("/login")}>
+            <ArrowLeft size={16} />
+            Back to Login
+          </a>
+        </div>
+
+        {/* Step content — keyed for re-animation */}
+        <div key={step} className={`auth-form-body ${stepCls}`}>
+
+          {/* ── STEP 1: Email ── */}
+          {step === "email" && (
+            <>
+              <h2 className="auth-form-title">Reset Password</h2>
+              <p className="auth-form-subtitle">
+                Enter your registered email. We&apos;ll send you a 6-digit verification code.
               </p>
 
-              {/* Tip box */}
-              <div className="flex gap-3 items-center p-4 rounded-2xl bg-white/10 border border-white/15">
-                <span className="text-lg mt-0.5">💡</span>
-                <p className="text-xs text-white/70 leading-relaxed">{meta.tip}</p>
-              </div>
-            </div>
-
-            {/* Step progress dots */}
-            <div className="flex items-center gap-2 mt-12">
-              {(["email", "otp", "reset", "done"] as Step[]).map((s, i) => (
-                <div
-                  key={s}
-                  className={`progress-dot ${step === s ? "bg-white w-6 rounded-full" : "bg-white/30"}`}
+              <div className="auth-field auth-field--last">
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="auth-input"
                 />
-              ))}
-              <span className="ml-2 text-xs text-white/50 font-light">
-                Step {["email","otp","reset","done"].indexOf(step) + 1} of 4
-              </span>
-            </div>
-          </div>
-
-          <p className="relative z-10 text-white/40 text-xs font-light">© 2024 BillEase POS. All rights reserved.</p>
-        </div>
-
-        {/* ── RIGHT: Form Panel ── */}
-        <div className={`flex flex-col justify-center flex-1 bg-white px-20 py-14 ${formCls}`}>
-
-          {/* Brand + Back */}
-          <div className="flex items-center justify-between mb-16">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-blue-600 flex items-center justify-center text-white font-bold text-sm">B</div>
-              <span className="text-xl font-bold text-slate-900 tracking-tight">BillEase</span>
-            </div>
-            <a
-              href="/login"
-              onClick={goToLogin}
-              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Login
-            </a>
-          </div>
-
-          {/* Step content */}
-          <div key={step} className={`max-w-sm w-full ${stepCls}`}>
-
-            {/* ── STEP 1: Email ── */}
-            {step === "email" && (
-              <>
-                <h2 className="text-4xl font-extrabold text-slate-900 mb-2">Reset Password</h2>
-                <p className="text-sm text-slate-400 mb-10 leading-relaxed">
-                  Enter your registered email address. We&apos;ll send you a 6-digit verification code.
-                </p>
-
-                <div className="relative mb-10">
-                  <input
-                    type="email"
-                    placeholder="Email address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-line pr-8"
-                  />
-                  <Mail className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-                </div>
-
-                <button
-                  onClick={() => nextStep("otp")}
-                  disabled={!email.includes("@")}
-                  className="w-full py-4 rounded-xl bg-[#2b34d1] text-white font-semibold text-sm tracking-wide hover:bg-[#1e27b5] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
-                >
-                  Send Verification Code
-                </button>
-
-                <p className="text-center text-xs text-slate-400 mt-6">
-                  Remember your password?{" "}
-                  <a href="/login" onClick={goToLogin} className="text-slate-900 font-semibold underline underline-offset-2 hover:text-[#2b34d1] transition-colors">
-                    Sign In
-                  </a>
-                </p>
-              </>
-            )}
-
-            {/* ── STEP 2: OTP ── */}
-            {step === "otp" && (
-              <>
-                <h2 className="text-4xl font-extrabold text-slate-900 mb-2">Enter Code</h2>
-                <p className="text-sm text-slate-400 mb-2 leading-relaxed">
-                  We sent a 6-digit code to
-                </p>
-                <p className="text-sm font-semibold text-slate-800 mb-8">{email}</p>
-
-                <OtpInput value={otp} onChange={setOtp} />
-
-                <button
-                  onClick={() => nextStep("reset")}
-                  disabled={otp.some((d) => !d)}
-                  className="w-full py-4 rounded-xl bg-[#2b34d1] text-white font-semibold text-sm tracking-wide hover:bg-[#1e27b5] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 mb-4"
-                >
-                  Verify Code
-                </button>
-
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => nextStep("email")}
-                    className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    ← Change email
-                  </button>
-                  <button className="text-xs text-[#2b34d1] font-semibold hover:underline underline-offset-2 transition-colors">
-                    Resend code
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* ── STEP 3: Reset Password ── */}
-            {step === "reset" && (
-              <>
-                <h2 className="text-4xl font-extrabold text-slate-900 mb-2">New Password</h2>
-                <p className="text-sm text-slate-400 mb-10 leading-relaxed">
-                  Create a strong password you haven&apos;t used before.
-                </p>
-
-                <div className="relative mb-8">
-                  <input
-                    type={showPass ? "text" : "password"}
-                    placeholder="New password"
-                    className="input-line pr-8"
-                  />
-                  <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                <div className="relative mb-10">
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    className="input-line pr-8"
-                  />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
-                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-
-                {/* Password strength hint */}
-                <div className="flex gap-1.5 mb-8">
-                  {["bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-500"].map((c, i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full ${i < 2 ? c : "bg-slate-200"}`} />
-                  ))}
-                  <span className="ml-2 text-xs text-slate-400 self-center whitespace-nowrap">Fair</span>
-                </div>
-
-                <button
-                  onClick={() => nextStep("done")}
-                  className="w-full py-4 rounded-xl bg-[#2b34d1] text-white font-semibold text-sm tracking-wide hover:bg-[#1e27b5] active:scale-[0.98] transition-all duration-150"
-                >
-                  Reset Password
-                </button>
-              </>
-            )}
-
-            {/* ── STEP 4: Done ── */}
-            {step === "done" && (
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-full bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-8">
-                  <CheckCircle2 className="w-10 h-10 text-green-500" />
-                </div>
-
-                <h2 className="text-4xl font-extrabold text-slate-900 mb-3">Password Reset!</h2>
-                <p className="text-sm text-slate-400 mb-10 leading-relaxed">
-                  Your password has been updated successfully. Sign in with your new password.
-                </p>
-
-                <button
-                  onClick={(e) => goToLogin(e as unknown as React.MouseEvent)}
-                  className="w-full py-4 rounded-xl bg-slate-900 text-white font-semibold text-sm tracking-wide hover:bg-slate-700 active:scale-[0.98] transition-all duration-150 mb-4"
-                >
-                  Back to Login
-                </button>
-
-                <p className="text-xs text-slate-400">
-                  You&apos;ll be signed out from all other devices for security.
-                </p>
+                <Mail className="auth-field__icon" size={16} />
               </div>
-            )}
 
-          </div>
+              <button
+                className="auth-btn auth-btn--blue"
+                onClick={() => nextStep("otp")}
+                disabled={!email.includes("@")}
+              >
+                Send Verification Code
+              </button>
+
+              <p className="auth-footer-link">
+                Remember your password?{" "}
+                <a href="/login" onClick={navigate("/login")}>Sign In</a>
+              </p>
+            </>
+          )}
+
+          {/* ── STEP 2: OTP ── */}
+          {step === "otp" && (
+            <>
+              <h2 className="auth-form-title">Enter Code</h2>
+              <p className="auth-form-subtitle" style={{ marginBottom: "0.375rem" }}>
+                We sent a 6-digit code to
+              </p>
+              <p style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--slate-900)", marginBottom: "1.75rem" }}>
+                {email}
+              </p>
+
+              <OtpInput value={otp} onChange={setOtp} />
+
+              <button
+                className="auth-btn auth-btn--blue"
+                onClick={() => nextStep("reset")}
+                disabled={otp.some((d) => !d)}
+              >
+                Verify Code
+              </button>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+                <button
+                  onClick={() => nextStep("email")}
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", color: "var(--slate-400)", fontFamily: "var(--font)" }}
+                >
+                  ← Change email
+                </button>
+                <button
+                  style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600, color: "var(--brand-blue)", fontFamily: "var(--font)", textDecoration: "underline", textUnderlineOffset: "2px" }}
+                >
+                  Resend code
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 3: New Password ── */}
+          {step === "reset" && (
+            <>
+              <h2 className="auth-form-title">New Password</h2>
+              <p className="auth-form-subtitle">
+                Create a strong password you haven&apos;t used before.
+              </p>
+
+              <div className="auth-field">
+                <input
+                  type={showPass ? "text" : "password"}
+                  placeholder="New password"
+                  className="auth-input"
+                />
+                <button type="button" className="auth-field__toggle" onClick={() => setShowPass(!showPass)}>
+                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <div className="auth-field" style={{ marginBottom: "1.25rem" }}>
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  className="auth-input"
+                />
+                <button type="button" className="auth-field__toggle" onClick={() => setShowConfirm(!showConfirm)}>
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {/* Password strength */}
+              <div className="strength-bar">
+                <div className="strength-bar__seg strength-bar__seg--red"    />
+                <div className="strength-bar__seg strength-bar__seg--orange" />
+                <div className="strength-bar__seg" />
+                <div className="strength-bar__seg" />
+                <span className="strength-bar__label">Fair</span>
+              </div>
+
+              <button
+                className="auth-btn auth-btn--blue"
+                onClick={() => nextStep("done")}
+              >
+                Reset Password
+              </button>
+            </>
+          )}
+
+          {/* ── STEP 4: Done ── */}
+          {step === "done" && (
+            <div className="auth-done">
+              <div className="auth-done__icon">
+                <CheckCircle2 size={40} />
+              </div>
+
+              <h2 className="auth-form-title" style={{ marginBottom: "0.75rem" }}>Password Reset!</h2>
+              <p className="auth-form-subtitle">
+                Your password has been updated successfully. Sign in with your new password.
+              </p>
+
+              <button
+                className="auth-btn auth-btn--primary"
+                onClick={(e) => navigate("/login")(e as unknown as React.MouseEvent)}
+              >
+                Back to Login
+              </button>
+
+              <p className="auth-done__note">
+                You&apos;ll be signed out from all other devices for security.
+              </p>
+            </div>
+          )}
+
         </div>
-
       </div>
-    </>
+
+    </div>
   );
 }
