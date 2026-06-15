@@ -63,25 +63,25 @@ const PANEL_META: Record<Step, {
 }> = {
   email: {
     icon: KeyRound,
-    title: "Forgot your\npassword? 🔑",
+    title: "Forgot your\npassword?",
     subtitle: "No worries! Enter your registered email and we'll send you a secure reset code.",
     tip: "Check your spam folder if you don't see the email within 2 minutes.",
   },
   otp: {
     icon: ShieldCheck,
-    title: "Check your\ninbox! 📬",
+    title: "Check your\ninbox!",
     subtitle: "We've sent a 6-digit verification code to your email. Enter it to continue.",
     tip: "The code expires in 10 minutes. Didn't receive it? You can resend.",
   },
   reset: {
     icon: LockKeyhole,
-    title: "Create a new\npassword 🔒",
+    title: "Create a new\npassword",
     subtitle: "Choose a strong password with at least 8 characters, numbers, and symbols.",
     tip: "Never share your password with anyone. BillEase will never ask for it.",
   },
   done: {
     icon: CheckCircle2,
-    title: "All done! 🎉",
+    title: "All done!",
     subtitle: "Your password has been reset successfully. You can now sign in with your new password.",
     tip: "For security, you'll be signed out from all other devices.",
   },

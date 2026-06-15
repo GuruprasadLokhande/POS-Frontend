@@ -454,10 +454,13 @@ html, body {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 2.25rem;
+  width: 100%;
 }
 
 .otp-cell {
   flex: 1;
+  min-width: 0;
+  max-width: 3.5rem;
   height: 3.5rem;
   text-align: center;
   font-size: 1.25rem;
@@ -732,11 +735,12 @@ html, body {
   }
 
   .otp-row {
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
 
   .otp-cell {
-    height: 3rem;
+    max-width: 2.75rem;
+    height: 2.75rem;
     font-size: 1.1rem;
     border-radius: var(--radius-lg);
   }
@@ -757,7 +761,17 @@ html, body {
   }
 
   .otp-cell {
-    height: 2.75rem;
+    max-width: 2.4rem;
+    height: 2.4rem;
     font-size: 1rem;
+    gap: 0.3rem;
   }
 }
+
+.auth-panel--order-1 {
+    order: -1 !important;
+  }
+
+  .auth-form-side--order-2 {
+    order: 1 !important;
+  }

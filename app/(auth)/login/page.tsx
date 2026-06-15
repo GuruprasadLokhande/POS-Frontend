@@ -47,7 +47,7 @@ export default function LoginPage() {
             <Receipt size={28} />
           </div>
 
-          <h1 className="auth-panel__title">{"Hello\nBillEase! 👋"}</h1>
+          <h1 className="auth-panel__title">{"Hello\nBillEase!"}</h1>
 
           <p className="auth-panel__subtitle">
             Skip manual billing tasks. Manage your shop, inventory and customers — all in one place and save tons of time!

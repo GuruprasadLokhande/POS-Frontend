@@ -32,7 +32,7 @@ export default function SignupPage() {
     <div className="auth-screen">
 
       {/* ── LEFT: Signup Form ── */}
-      <div className={`auth-form-side auth-form-side--scrollable ${formCls}`}>
+      <div className={`auth-form-side auth-form-side--scrollable auth-form-side--order-2 ${formCls}`}>
 
         <div className="auth-brand">
           <div className="auth-brand__icon">B</div>
@@ -108,7 +108,7 @@ export default function SignupPage() {
       </div>
 
       {/* ── RIGHT: Blue Panel ── */}
-      <div className={`auth-panel auth-panel--right ${panelCls}`}>
+      <div className={`auth-panel auth-panel--right auth-panel--order-1 ${panelCls}`}>
 
         {/* Arc decorations — mirrored */}
         <div className="auth-panel__arc" style={{ width: 520, height: 520, top: -60,  left: -200 }} />
@@ -122,7 +122,7 @@ export default function SignupPage() {
             <Store size={28} />
           </div>
 
-          <h1 className="auth-panel__title">{"Start Your\nFree Trial! 🚀"}</h1>
+          <h1 className="auth-panel__title">{"Start Your\nFree Trial!"}</h1>
 
           <p className="auth-panel__subtitle">
             Join thousands of shop owners who trust BillEase to run their daily operations seamlessly.

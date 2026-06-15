@@ -1,0 +1,348 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+
+/* ── Reset & Base ── */
+.bp-bar *,
+.bp-mobile-nav * {
+  font-family: 'Sora', sans-serif;
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.bp-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+/* ── Brand ── */
+.bp-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.bp-brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #2b34d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bp-brand-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* ── Desktop Nav ── */
+.bp-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.bp-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  color: #64748b;
+}
+
+.bp-nav-link:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.bp-nav-link.active {
+  background: #2b34d1;
+  color: #ffffff;
+}
+
+/* ── Desktop Search ── */
+.bp-search-wrap {
+  position: relative;
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.bp-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.bp-search-input {
+  width: 100%;
+  padding: 9px 14px 9px 36px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+  font-size: 13px;
+  color: #334155;
+  outline: none;
+  font-family: 'Sora', sans-serif;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.bp-search-input:focus {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* ── Right Section ── */
+.bp-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Add Sale Button ── */
+.bp-add-sale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #2b34d1;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(43, 52, 209, 0.3);
+  flex-shrink: 0;
+  font-family: 'Sora', sans-serif;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.bp-add-sale:hover {
+  background: #2229b8;
+  box-shadow: 0 4px 12px rgba(43, 52, 209, 0.4);
+}
+
+/* ── Icon Button ── */
+.bp-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.bp-icon-btn:hover {
+  background: #e2e8f0;
+}
+
+/* ── Bell ── */
+.bp-bell-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bp-bell-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #ffffff;
+}
+
+/* ── Avatar ── */
+.bp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fb923c, #2b34d1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+}
+
+/* ── Mobile Search Overlay ── */
+.bp-mobile-search {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 64px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  z-index: 10;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bp-mobile-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  outline: none;
+  font-family: 'Sora', sans-serif;
+  color: #0f172a;
+}
+
+.bp-mobile-search input::placeholder {
+  color: #94a3b8;
+}
+
+.bp-mobile-search-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+}
+
+/* ── Mobile Nav Dropdown ── */
+.bp-mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.bp-mobile-nav {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  font-family: 'Sora', sans-serif;
+}
+
+.bp-mob-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  color: #64748b;
+}
+
+.bp-mob-link:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.bp-mob-link.active {
+  background: #2b34d1;
+  color: #ffffff;
+}
+
+/* ── Responsive Visibility ── */
+
+/* Mobile first: hide desktop elements by default */
+.bp-desktop-only {
+  display: none !important;
+}
+
+.bp-mobile-only {
+  display: flex !important;
+}
+
+/* Tablet (640px+): show brand name */
+@media (min-width: 640px) {
+  .bp-brand-name {
+    display: inline;
+  }
+
+  .bp-mobile-nav {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Tablet (768px+): show search on mobile nav */
+@media (min-width: 768px) {
+  .bp-add-sale-label {
+    display: inline;
+  }
+}
+
+/* Desktop (1024px+): show full nav, hide hamburger & mobile search toggle */
+@media (min-width: 1024px) {
+  .bp-desktop-only {
+    display: flex !important;
+  }
+
+  .bp-mobile-only {
+    display: none !important;
+  }
+
+  .bp-brand-name {
+    display: inline;
+  }
+}
+
+/* Hide brand name on very small screens */
+@media (max-width: 374px) {
+  .bp-brand-name {
+    display: none;
+  }
+
+  .bp-add-sale span {
+    display: none;
+  }
+
+  .bp-add-sale {
+    padding: 8px 10px;
+  }
+}
