@@ -30,9 +30,9 @@ import "./newsale.css";
 interface SaleItem {
   id: string;
   name: string;
-  qty: number;
   price: number;
   unit: string;
+  qty: number;
 }
 type PaymentMethod = "cash" | "upi" | "card" | "credit";
 type DiscountType = "flat" | "percent";
@@ -322,16 +322,29 @@ export default function NewSalePage() {
     (s) => s.name.toLowerCase().includes(itemSearch.toLowerCase()) && itemSearch.length > 0
   );
 
-  const addItem = (s: (typeof INVENTORY)[0]) => {
-    setItems((prev) => {
-      const ex = prev.find((i) => i.name === s.name);
-      return ex
-        ? prev.map((i) => (i.name === s.name ? { ...i, qty: i.qty + 1 } : i))
-        : [...prev, { id: `${Date.now()}-${Math.random()}`, ...s }];
-    });
-    setItemSearch("");
-    setShowDrop(false);
-  };
+const addItem = (s: (typeof INVENTORY)[0]) => {
+  setItems((prev) => {
+    const ex = prev.find((i) => i.name === s.name);
+
+    return ex
+      ? prev.map((i) =>
+          i.name === s.name
+            ? { ...i, qty: i.qty + 1 }
+            : i
+        )
+      : [
+          ...prev,
+          {
+            id: `${Date.now()}-${Math.random()}`,
+            ...s,
+            qty: 1,
+          },
+        ];
+  });
+
+  setItemSearch("");
+  setShowDrop(false);
+};
 
   const addManual = () => {
     if (!itemSearch.trim()) return;
