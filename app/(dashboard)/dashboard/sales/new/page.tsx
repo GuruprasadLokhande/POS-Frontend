@@ -1,7 +1,7 @@
 // NewSale.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -24,30 +24,68 @@ import {
   CreditCard,
   BookOpen,
   Percent,
+  Barcode,
+  Pause,
+  Play,
+  RefreshCw,
+  Undo2,
+  Gift,
+  QrCode,
+  Banknote,
+  Split,
+  Scan,
+  Clock,
+  Save,
+  RotateCcw,
+  CircleDollarSign,
 } from "lucide-react";
 import "./newsale.css";
 
+// --- Types ---
 interface SaleItem {
   id: string;
   name: string;
   price: number;
   unit: string;
   qty: number;
+  discount?: number;
+  discountType?: DiscountType;
 }
+
 type PaymentMethod = "cash" | "upi" | "card" | "credit";
 type DiscountType = "flat" | "percent";
+type TaxType = "cgst_sgst" | "igst";
 
+interface SplitPayment {
+  method: PaymentMethod;
+  amount: number;
+}
+
+interface HeldBill {
+  id: string;
+  items: SaleItem[];
+  customerName: string;
+  customerPhone: string;
+  subtotal: number;
+  discount: number;
+  discountType: DiscountType;
+  tax: number;
+  total: number;
+  heldAt: string;
+}
+
+// --- Constants ---
 const INVENTORY = [
-  { name: "Tata Salt 1kg", price: 24, unit: "pcs" },
-  { name: "Amul Butter 100g", price: 52, unit: "pcs" },
-  { name: "Surf Excel 1kg", price: 190, unit: "pcs" },
-  { name: "Aashirvaad Atta 5kg", price: 265, unit: "bag" },
-  { name: "Fortune Oil 1L", price: 140, unit: "btl" },
-  { name: "Parle-G Biscuit", price: 10, unit: "pcs" },
-  { name: "Maggi 70g", price: 14, unit: "pcs" },
-  { name: "Colgate 200g", price: 80, unit: "pcs" },
-  { name: "Lifebuoy Soap", price: 35, unit: "pcs" },
-  { name: "Horlicks 500g", price: 245, unit: "jar" },
+  { name: "Tata Salt 1kg", price: 24, unit: "pcs", barcode: "8901030780011" },
+  { name: "Amul Butter 100g", price: 52, unit: "pcs", barcode: "8901030780020" },
+  { name: "Surf Excel 1kg", price: 190, unit: "pcs", barcode: "8901030780030" },
+  { name: "Aashirvaad Atta 5kg", price: 265, unit: "bag", barcode: "8901030780040" },
+  { name: "Fortune Oil 1L", price: 140, unit: "btl", barcode: "8901030780050" },
+  { name: "Parle-G Biscuit", price: 10, unit: "pcs", barcode: "8901030780060" },
+  { name: "Maggi 70g", price: 14, unit: "pcs", barcode: "8901030780070" },
+  { name: "Colgate 200g", price: 80, unit: "pcs", barcode: "8901030780080" },
+  { name: "Lifebuoy Soap", price: 35, unit: "pcs", barcode: "8901030780090" },
+  { name: "Horlicks 500g", price: 245, unit: "jar", barcode: "8901030780100" },
 ];
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactNode }[] = [
@@ -57,7 +95,43 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.ReactN
   { value: "credit", label: "Credit", icon: <BookOpen size={16} /> },
 ];
 
-/* Invoice Modal */
+const TAX_RATES = [
+  { label: "0%", value: "0" },
+  { label: "5%", value: "5" },
+  { label: "12%", value: "12" },
+  { label: "18%", value: "18" },
+  { label: "28%", value: "28" },
+];
+
+// --- Utility Functions ---
+const generateInvoiceNo = () => `INV-${Date.now().toString().slice(-6)}`;
+const generateBillId = () => `HLD-${Date.now().toString().slice(-6)}`;
+
+// --- Barcode Scanner Hook ---
+const useBarcodeScanner = (onScan: (barcode: string) => void) => {
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [isScanning, setIsScanning] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && isScanning) {
+        e.preventDefault();
+        if (barcodeInput.length > 0) {
+          onScan(barcodeInput);
+          setBarcodeInput("");
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [barcodeInput, isScanning, onScan]);
+
+  return { barcodeInput, setBarcodeInput, isScanning, setIsScanning, inputRef };
+};
+
+// --- Invoice Modal ---
 function InvoiceModal({
   items,
   subtotal,
@@ -68,8 +142,13 @@ function InvoiceModal({
   customerName,
   customerPhone,
   paymentMethod,
+  splitPayments,
   invoiceNo,
   onClose,
+  onPrint,
+  onWhatsApp,
+  onDownload,
+  onReturn,
 }: {
   items: SaleItem[];
   subtotal: number;
@@ -80,12 +159,19 @@ function InvoiceModal({
   customerName: string;
   customerPhone: string;
   paymentMethod: PaymentMethod;
+  splitPayments?: SplitPayment[];
   invoiceNo: string;
   onClose: () => void;
+  onPrint: () => void;
+  onWhatsApp: () => void;
+  onDownload: () => void;
+  onReturn: () => void;
 }) {
   const printRef = useRef<HTMLDivElement>(null);
   const discountAmt = discountType === "percent" ? (subtotal * discount) / 100 : discount;
   const taxAmt = ((subtotal - discountAmt) * tax) / 100;
+  const [showReturn, setShowReturn] = useState(false);
+  const [returnItems, setReturnItems] = useState<{ [key: string]: number }>({});
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML;
@@ -118,6 +204,7 @@ function InvoiceModal({
       tax > 0 ? `Tax (${tax}%): +₹${taxAmt.toFixed(2)}` : null,
       `*Total   : ₹${total.toFixed(2)}*`,
       `Payment  : ${paymentMethod.toUpperCase()}`,
+      splitPayments?.length ? `Split: ${splitPayments.map(p => `${p.method} ₹${p.amount}`).join(', ')}` : null,
       ``,
       `Thank you!`,
     ]
@@ -166,11 +253,19 @@ function InvoiceModal({
     URL.revokeObjectURL(a.href);
   };
 
+  const handleReturn = () => {
+    const itemsToReturn = items.filter((item) => returnItems[item.id] && returnItems[item.id] > 0);
+    if (itemsToReturn.length === 0) return;
+    // Here you would process the return
+    alert(`Return processed for ${itemsToReturn.length} items`);
+    setShowReturn(false);
+    onReturn();
+  };
+
   return (
     <div className="invoice-modal-overlay">
       <div className="invoice-modal-container">
         <div className="invoice-modal">
-          {/* Header */}
           <div className="invoice-modal-header">
             <div className="invoice-modal-header-left">
               <div className="invoice-modal-header-icon">
@@ -186,10 +281,8 @@ function InvoiceModal({
             </button>
           </div>
 
-          {/* Scrollable invoice */}
           <div className="invoice-modal-scroll">
             <div ref={printRef} className="invoice-content">
-              {/* Shop */}
               <div className="invoice-shop">
                 <div className="invoice-shop-icon">
                   <Receipt size={22} />
@@ -199,7 +292,6 @@ function InvoiceModal({
                 <p className="invoice-shop-gst">GST: 27AABCS1429B1ZB</p>
               </div>
 
-              {/* Bill to */}
               <div className="invoice-bill-to">
                 <div>
                   <p className="invoice-bill-to-label">Bill To</p>
@@ -213,7 +305,6 @@ function InvoiceModal({
                 </div>
               </div>
 
-              {/* Items */}
               <table className="invoice-items-table">
                 <thead>
                   <tr>
@@ -237,7 +328,34 @@ function InvoiceModal({
                 </tbody>
               </table>
 
-              {/* Totals */}
+              {showReturn && (
+                <div className="invoice-return-section">
+                  <p className="invoice-return-title">Select items to return</p>
+                  {items.map((item) => (
+                    <div key={item.id} className="invoice-return-row">
+                      <span>{item.name}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={item.qty}
+                        value={returnItems[item.id] || 0}
+                        onChange={(e) =>
+                          setReturnItems((prev) => ({
+                            ...prev,
+                            [item.id]: Math.min(parseInt(e.target.value) || 0, item.qty),
+                          }))
+                        }
+                        className="sale-input"
+                        style={{ width: "60px", padding: "4px 8px" }}
+                      />
+                    </div>
+                  ))}
+                  <button onClick={handleReturn} className="invoice-return-btn">
+                    Process Return
+                  </button>
+                </div>
+              )}
+
               <div className="invoice-totals">
                 <div className="invoice-totals-row">
                   <span>Subtotal</span>
@@ -261,7 +379,11 @@ function InvoiceModal({
                 </div>
                 <div className="invoice-totals-payment">
                   <span>Payment</span>
-                  <span>{paymentMethod}</span>
+                  <span>
+                    {splitPayments?.length
+                      ? splitPayments.map((p) => `${p.method} ₹${p.amount}`).join(" + ")
+                      : paymentMethod}
+                  </span>
                 </div>
               </div>
 
@@ -271,7 +393,6 @@ function InvoiceModal({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="invoice-actions">
             <div className="invoice-actions-grid">
               <button onClick={handlePrint} className="invoice-action-btn invoice-action-print">
@@ -284,9 +405,14 @@ function InvoiceModal({
                 <MessageCircle size={18} /> WhatsApp
               </button>
             </div>
-            <button onClick={onClose} className="invoice-new-sale-btn">
-              + New Sale
-            </button>
+            <div className="invoice-actions-secondary">
+              <button onClick={() => setShowReturn(!showReturn)} className="invoice-action-return-btn">
+                <Undo2 size={16} /> Return
+              </button>
+              <button onClick={onClose} className="invoice-new-sale-btn">
+                + New Sale
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -294,10 +420,11 @@ function InvoiceModal({
   );
 }
 
-/* New Sale Page */
+// --- Main Component ---
 export default function NewSalePage() {
   const router = useRouter();
 
+  // State
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [items, setItems] = useState<SaleItem[]>([]);
@@ -309,42 +436,62 @@ export default function NewSalePage() {
   const [tax, setTax] = useState("0");
   const [notes, setNotes] = useState("");
   const [showInvoice, setShowInvoice] = useState(false);
-  const [invoiceNo] = useState(`INV-${Date.now().toString().slice(-6)}`);
+  const [invoiceNo] = useState(generateInvoiceNo());
+  const [heldBills, setHeldBills] = useState<HeldBill[]>([]);
+  const [isHolding, setIsHolding] = useState(false);
+  const [splitPayments, setSplitPayments] = useState<SplitPayment[]>([]);
+  const [showSplitPayment, setShowSplitPayment] = useState(false);
+  const [splitAmount, setSplitAmount] = useState("");
+  const [splitMethod, setSplitMethod] = useState<PaymentMethod>("cash");
+  const [showUPIQr, setShowUPIQr] = useState(false);
+  const [appliedLoyalty, setAppliedLoyalty] = useState(0);
+  const [loyaltyPoints, setLoyaltyPoints] = useState(50);
+  const [taxType, setTaxType] = useState<TaxType>("cgst_sgst");
+  const [taxAmounts, setTaxAmounts] = useState({ cgst: 0, sgst: 0, igst: 0 });
 
+  // Barcode Scanner
+  const { barcodeInput, setBarcodeInput, isScanning, setIsScanning, inputRef } = useBarcodeScanner(
+    (barcode: string) => {
+      const product = INVENTORY.find((p) => p.barcode === barcode);
+      if (product) {
+        addItem(product);
+        setBarcodeInput("");
+      } else {
+        alert(`Product with barcode ${barcode} not found`);
+      }
+    }
+  );
+
+  // Computed values
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
   const discountNum = parseFloat(discount) || 0;
   const taxNum = parseFloat(tax) || 0;
   const discountAmt = discountType === "percent" ? (subtotal * discountNum) / 100 : discountNum;
-  const taxAmt = ((subtotal - discountAmt) * taxNum) / 100;
-  const total = subtotal - discountAmt + taxAmt;
+  const taxableAmount = subtotal - discountAmt;
+  const taxAmt = (taxableAmount * taxNum) / 100;
+
+  // CGST/SGST split (50-50)
+  const cgstAmt = taxType === "cgst_sgst" ? taxAmt / 2 : 0;
+  const sgstAmt = taxType === "cgst_sgst" ? taxAmt / 2 : 0;
+  const igstAmt = taxType === "igst" ? taxAmt : 0;
+
+  const total = subtotal - discountAmt + taxAmt - appliedLoyalty;
 
   const suggestions = INVENTORY.filter(
     (s) => s.name.toLowerCase().includes(itemSearch.toLowerCase()) && itemSearch.length > 0
   );
 
-const addItem = (s: (typeof INVENTORY)[0]) => {
-  setItems((prev) => {
-    const ex = prev.find((i) => i.name === s.name);
-
-    return ex
-      ? prev.map((i) =>
-          i.name === s.name
-            ? { ...i, qty: i.qty + 1 }
-            : i
-        )
-      : [
-          ...prev,
-          {
-            id: `${Date.now()}-${Math.random()}`,
-            ...s,
-            qty: 1,
-          },
-        ];
-  });
-
-  setItemSearch("");
-  setShowDrop(false);
-};
+  // --- Functions ---
+  const addItem = (s: (typeof INVENTORY)[0]) => {
+    setItems((prev) => {
+      const ex = prev.find((i) => i.name === s.name);
+      return ex
+        ? prev.map((i) => (i.name === s.name ? { ...i, qty: i.qty + 1 } : i))
+        : [...prev, { id: `${Date.now()}-${Math.random()}`, ...s, qty: 1 }];
+    });
+    setItemSearch("");
+    setShowDrop(false);
+  };
 
   const addManual = () => {
     if (!itemSearch.trim()) return;
@@ -379,8 +526,90 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
     setTax("0");
     setNotes("");
     setShowInvoice(false);
+    setSplitPayments([]);
+    setAppliedLoyalty(0);
   };
 
+  const holdBill = () => {
+    if (items.length === 0) return;
+    const newBill: HeldBill = {
+      id: generateBillId(),
+      items: [...items],
+      customerName,
+      customerPhone,
+      subtotal,
+      discount: discountNum,
+      discountType,
+      tax: taxNum,
+      total,
+      heldAt: new Date().toLocaleString(),
+    };
+    setHeldBills((prev) => [...prev, newBill]);
+    resetSale();
+    setIsHolding(false);
+  };
+
+  const resumeBill = (bill: HeldBill) => {
+    setItems(bill.items);
+    setCustomerName(bill.customerName);
+    setCustomerPhone(bill.customerPhone);
+    setDiscount(String(bill.discount));
+    setDiscountType(bill.discountType);
+    setTax(String(bill.tax));
+    setHeldBills((prev) => prev.filter((b) => b.id !== bill.id));
+  };
+
+  const deleteHeldBill = (id: string) => {
+    setHeldBills((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  const addSplitPayment = () => {
+    const amount = parseFloat(splitAmount);
+    if (isNaN(amount) || amount <= 0 || amount > total - getSplitTotal()) return;
+    setSplitPayments((prev) => [...prev, { method: splitMethod, amount }]);
+    setSplitAmount("");
+  };
+
+  const getSplitTotal = () => {
+    return splitPayments.reduce((sum, p) => sum + p.amount, 0);
+  };
+
+  const removeSplitPayment = (index: number) => {
+    setSplitPayments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const applyLoyaltyPoints = () => {
+    const maxPoints = Math.floor(total / 10); // 1 point = ₹10
+    if (loyaltyPoints > 0) {
+      const pointsToUse = Math.min(loyaltyPoints, maxPoints);
+      const discountAmount = pointsToUse * 1; // 1 point = ₹1
+      setAppliedLoyalty(discountAmount);
+      setLoyaltyPoints((prev) => prev - pointsToUse);
+    }
+  };
+
+  const handleReturn = () => {
+    // Return handled in invoice modal
+  };
+
+  const generateUPIQr = () => {
+    setShowUPIQr(true);
+    // In real app, generate QR code here
+  };
+
+  const handleRecordSale = () => {
+    if (items.length === 0) return;
+
+    // Check split payment
+    if (showSplitPayment && getSplitTotal() < total) {
+      alert(`Please add split payments totaling ₹${total.toFixed(2)}`);
+      return;
+    }
+
+    setShowInvoice(true);
+  };
+
+  // --- Render ---
   return (
     <div className="sale-page">
       <div className="sale-page-container">
@@ -393,13 +622,69 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
             <h1 className="sale-header-title">New Sale</h1>
             <p className="sale-header-subtitle">Add items and bill the customer</p>
           </div>
+          <div className="sale-header-actions">
+            <button
+              onClick={() => setIsHolding(!isHolding)}
+              className="sale-header-btn"
+              title="Hold/Park Bill"
+            >
+              <Pause size={16} />
+              <span className="sale-header-btn-label">Hold</span>
+            </button>
+            {heldBills.length > 0 && (
+              <div className="sale-held-bills-indicator">
+                <Clock size={14} />
+                <span>{heldBills.length}</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Held Bills */}
+        {isHolding && (
+          <div className="sale-held-bills">
+            <div className="sale-held-bills-header">
+              <span className="sale-held-bills-title">
+                <Clock size={14} /> Parked Bills ({heldBills.length})
+              </span>
+              <button onClick={() => setIsHolding(false)} className="sale-held-bills-close">
+                <X size={14} />
+              </button>
+            </div>
+            {heldBills.length === 0 ? (
+              <p className="sale-held-bills-empty">No parked bills</p>
+            ) : (
+              <div className="sale-held-bills-list">
+                {heldBills.map((bill) => (
+                  <div key={bill.id} className="sale-held-bill-item">
+                    <div className="sale-held-bill-info">
+                      <span className="sale-held-bill-id">{bill.id}</span>
+                      <span className="sale-held-bill-customer">
+                        {bill.customerName || "Walk-in"}
+                      </span>
+                      <span className="sale-held-bill-total">₹{bill.total.toFixed(2)}</span>
+                      <span className="sale-held-bill-time">{bill.heldAt}</span>
+                    </div>
+                    <div className="sale-held-bill-actions">
+                      <button onClick={() => resumeBill(bill)} className="sale-held-bill-resume">
+                        <Play size={14} /> Resume
+                      </button>
+                      <button onClick={() => deleteHeldBill(bill.id)} className="sale-held-bill-delete">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Main grid */}
         <div className="sale-grid">
           {/* LEFT COLUMN */}
           <div className="sale-left-col">
-            {/* Customer */}
+            {/* Customer Section */}
             <div className="sale-card">
               <p className="sale-card-title">
                 <User size={14} /> Customer Details
@@ -429,14 +714,37 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
               </div>
             </div>
 
-            {/* Items */}
-            <div className="sale-card">
+            {/* Items Section */}
+            <div className="sale-card sale-items-card">
               <p className="sale-card-title">
                 <ShoppingCart size={14} /> Items
                 {items.length > 0 && (
                   <span className="sale-item-count-badge">{items.length}</span>
                 )}
               </p>
+
+              {/* Barcode Scanner */}
+              <div className="sale-barcode-section">
+                <div className="sale-barcode-input-wrapper">
+                  <Scan size={14} className="sale-barcode-icon" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Scan barcode..."
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onFocus={() => setIsScanning(true)}
+                    onBlur={() => setIsScanning(false)}
+                    className="sale-input sale-input-pl-34"
+                  />
+                </div>
+                <button
+                  onClick={() => setIsScanning(!isScanning)}
+                  className={`sale-scan-btn ${isScanning ? "sale-scan-btn-active" : ""}`}
+                >
+                  {isScanning ? <CheckCircle2 size={14} /> : <Barcode size={14} />}
+                </button>
+              </div>
 
               {/* Search */}
               <div className="sale-search-wrapper">
@@ -478,6 +786,23 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                 )}
               </div>
 
+              {/* Quick Add Products */}
+              <div className="sale-quick-add">
+                <p className="sale-quick-add-title">Quick Add Products</p>
+                <div className="sale-quick-add-grid">
+                  {INVENTORY.map((s) => (
+                    <button
+                      key={s.name}
+                      onClick={() => addItem(s)}
+                      className="sale-quick-add-btn"
+                    >
+                      <span className="sale-quick-add-btn-name">{s.name}</span>
+                      <span className="sale-quick-add-btn-price">₹{s.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Items list */}
               {items.length === 0 ? (
                 <div className="sale-empty-items">
@@ -485,7 +810,7 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                     <ShoppingCart size={24} />
                   </div>
                   <p className="sale-empty-items-title">No items added yet</p>
-                  <p className="sale-empty-items-subtitle">Search above or use quick add below</p>
+                  <p className="sale-empty-items-subtitle">Search above or click a product to add</p>
                 </div>
               ) : (
                 <div className="sale-items-list">
@@ -535,20 +860,6 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                   ))}
                 </div>
               )}
-
-              {/* Quick add */}
-              <div className="sale-quick-add">
-                <p className="sale-quick-add-title">Quick Add</p>
-                <div className="sale-quick-add-grid">
-                  {INVENTORY.slice(0, 6).map((s) => (
-                    <button key={s.name} onClick={() => addItem(s)} className="sale-quick-add-btn">
-                      <Plus size={10} />
-                      {s.name.split(" ")[0]}
-                      <span className="sale-quick-add-price">₹{s.price}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Notes */}
@@ -585,6 +896,86 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                   );
                 })}
               </div>
+
+              {/* Split Payment Toggle */}
+              <div className="sale-split-toggle">
+                <button
+                  onClick={() => setShowSplitPayment(!showSplitPayment)}
+                  className={`sale-split-btn ${showSplitPayment ? "sale-split-btn-active" : ""}`}
+                >
+                  <Split size={14} /> Split Payment
+                </button>
+              </div>
+
+              {/* Split Payment UI */}
+              {showSplitPayment && (
+                <div className="sale-split-payment">
+                  <div className="sale-split-payment-row">
+                    <select
+                      value={splitMethod}
+                      onChange={(e) => setSplitMethod(e.target.value as PaymentMethod)}
+                      className="sale-input"
+                      style={{ width: "auto", flex: 1 }}
+                    >
+                      {PAYMENT_METHODS.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ position: "relative", flex: 1 }}>
+                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }}>₹</span>
+                      <input
+                        type="number"
+                        placeholder="Amount"
+                        value={splitAmount}
+                        onChange={(e) => setSplitAmount(e.target.value)}
+                        className="sale-input"
+                        style={{ paddingLeft: 24 }}
+                      />
+                    </div>
+                    <button onClick={addSplitPayment} className="sale-split-add-btn">
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  {splitPayments.length > 0 && (
+                    <div className="sale-split-list">
+                      {splitPayments.map((p, i) => (
+                        <div key={i} className="sale-split-item">
+                          <span>{p.method}</span>
+                          <span>₹{p.amount.toFixed(2)}</span>
+                          <button onClick={() => removeSplitPayment(i)} className="sale-split-remove">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="sale-split-total">
+                        <span>Total Split</span>
+                        <span>₹{getSplitTotal().toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* UPI QR */}
+              <div className="sale-upi-qr">
+                <button onClick={generateUPIQr} className="sale-upi-qr-btn">
+                  <QrCode size={14} /> Generate UPI QR
+                </button>
+                {showUPIQr && (
+                  <div className="sale-upi-qr-display">
+                    <div className="sale-upi-qr-placeholder">
+                      <QrCode size={48} />
+                      <p>UPI QR Code</p>
+                      <p className="sale-upi-qr-amount">₹{total.toFixed(2)}</p>
+                    </div>
+                    <button onClick={() => setShowUPIQr(false)} className="sale-upi-qr-close">
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Discount & Tax */}
@@ -620,17 +1011,52 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                 <div>
                   <p className="sale-section-label">GST / Tax Rate</p>
                   <div className="sale-tax-grid">
-                    {["0", "5", "12", "18", "28"].map((t) => (
+                    {TAX_RATES.map((t) => (
                       <button
-                        key={t}
-                        onClick={() => setTax(t)}
-                        className={`sale-tax-btn ${tax === t ? "sale-tax-btn-active" : ""}`}
+                        key={t.value}
+                        onClick={() => setTax(t.value)}
+                        className={`sale-tax-btn ${tax === t.value ? "sale-tax-btn-active" : ""}`}
                       >
-                        {t}%
+                        {t.label}
                       </button>
                     ))}
                   </div>
+                  <div className="sale-tax-type">
+                    <button
+                      onClick={() => setTaxType("cgst_sgst")}
+                      className={`sale-tax-type-btn ${taxType === "cgst_sgst" ? "sale-tax-type-btn-active" : ""}`}
+                    >
+                      CGST+SGST
+                    </button>
+                    <button
+                      onClick={() => setTaxType("igst")}
+                      className={`sale-tax-type-btn ${taxType === "igst" ? "sale-tax-type-btn-active" : ""}`}
+                    >
+                      IGST
+                    </button>
+                  </div>
+                  {taxNum > 0 && taxType === "cgst_sgst" && (
+                    <div className="sale-tax-breakdown">
+                      <span>CGST: ₹{cgstAmt.toFixed(2)}</span>
+                      <span>SGST: ₹{sgstAmt.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {taxNum > 0 && taxType === "igst" && (
+                    <div className="sale-tax-breakdown">
+                      <span>IGST: ₹{igstAmt.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Loyalty Points */}
+              <div className="sale-loyalty">
+                <button onClick={applyLoyaltyPoints} className="sale-loyalty-btn">
+                  <Gift size={14} /> Apply Loyalty Points ({loyaltyPoints} pts)
+                </button>
+                {appliedLoyalty > 0 && (
+                  <span className="sale-loyalty-applied">-₹{appliedLoyalty.toFixed(2)}</span>
+                )}
               </div>
             </div>
 
@@ -658,22 +1084,42 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
                     <span>+₹{taxAmt.toFixed(2)}</span>
                   </div>
                 )}
+                {appliedLoyalty > 0 && (
+                  <div className="sale-summary-discount">
+                    <span>Loyalty Points</span>
+                    <span>-₹{appliedLoyalty.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="sale-summary-total">
                   <span className="sale-summary-total-label">TOTAL</span>
                   <span className="sale-summary-total-value">₹{total.toFixed(2)}</span>
                 </div>
                 <div className="sale-summary-payment">
                   <span>Via</span>
-                  <span className="sale-summary-payment-method">{paymentMethod}</span>
+                  <span className="sale-summary-payment-method">
+                    {splitPayments.length
+                      ? splitPayments.map((p) => p.method).join(" + ")
+                      : paymentMethod}
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={() => items.length > 0 && setShowInvoice(true)}
-                disabled={items.length === 0}
-                className={`sale-record-btn ${items.length === 0 ? "sale-record-btn-disabled" : ""}`}
-              >
-                {items.length === 0 ? "Add items to continue" : `Record Sale · ₹${total.toFixed(2)}`}
-              </button>
+
+              <div className="sale-summary-actions">
+                <button
+                  onClick={holdBill}
+                  disabled={items.length === 0}
+                  className={`sale-hold-btn ${items.length === 0 ? "sale-hold-btn-disabled" : ""}`}
+                >
+                  <Pause size={14} /> Hold Bill
+                </button>
+                <button
+                  onClick={handleRecordSale}
+                  disabled={items.length === 0}
+                  className={`sale-record-btn ${items.length === 0 ? "sale-record-btn-disabled" : ""}`}
+                >
+                  {items.length === 0 ? "Add items to continue" : `Record Sale · ₹${total.toFixed(2)}`}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -690,8 +1136,13 @@ const addItem = (s: (typeof INVENTORY)[0]) => {
           customerName={customerName}
           customerPhone={customerPhone}
           paymentMethod={paymentMethod}
+          splitPayments={splitPayments}
           invoiceNo={invoiceNo}
           onClose={resetSale}
+          onPrint={() => {}}
+          onWhatsApp={() => {}}
+          onDownload={() => {}}
+          onReturn={handleReturn}
         />
       )}
     </div>

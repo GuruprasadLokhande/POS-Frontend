@@ -14,7 +14,8 @@ const NAV = [
   { href: "/dashboard/inventory", Icon: Package,      label: "Inventory" },
   { href: "/dashboard/customers", Icon: Users,        label: "Customers" },
   { href: "/dashboard/reports",   Icon: BarChart3,    label: "Reports"   },
-  { href: "/dashboard/settings",  Icon: Settings,     label: "Settings"  },
+  { href: "/settings",  Icon: Settings,     label: "Settings"  },
+  { href: "/employees",  Icon: Users,     label: "Employees"  },
 ];
 
 export function Topbar() {
