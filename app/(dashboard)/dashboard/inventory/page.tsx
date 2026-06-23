@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
-// import JsBarcode from "jsbarcode"; // npm install jsbarcode
+import JsBarcode from "jsbarcode"; // npm install jsbarcode
 import {
   Plus,
   Minus,
