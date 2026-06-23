@@ -233,6 +233,29 @@ interface ActiveSession {
   lastActive: string;
 }
 
+type EmployeeFormData = {
+  fullName: string;
+  mobile: string;
+  email: string;
+  gender: Employee["gender"];
+  dateOfBirth: string;
+  address: string;
+  joiningDate: string;
+  designation: string;
+  role: Employee["role"];
+  branch: string;
+  reportingManager: string;
+  shift: Employee["shift"];
+  shiftStart: string;
+  shiftEnd: string;
+  username: string;
+  pin: string;
+  forcePasswordChange: boolean;
+  basicSalary: number;
+  hra: number;
+  allowance: number;
+};
+
 // --- Mock Data ---
 
 const mockEmployees: Employee[] = [
@@ -1670,7 +1693,7 @@ function AuditLogModal({
                   <p>{log.details}</p>
                   <div className="audit-log-item-meta">
                     <span><Smartphone size={12} /> {log.device}</span>
-                    <span><Globe size={12} /> {log.ipAddress}</span>
+                    {/* <span><Globe size={12} /> {log.ipAddress}</span> */}
                   </div>
                 </div>
               </div>
@@ -1761,20 +1784,27 @@ export default function EmployeeManagementPage() {
   };
 
   const handleToggleStatus = (emp: Employee) => {
-    const updated = employees.map(e => {
+    const updated: Employee[] = employees.map(e => {
       if (e.id === emp.id) {
-        return { ...e, status: e.status === "active" ? "inactive" : "active" };
+        return {
+          ...e,
+          status: (e.status === "active" ? "inactive" : "active") as Employee["status"],
+        } as Employee;
       }
       return e;
     });
     setEmployees(updated);
   };
 
-  const handleSave = (data: any) => {
+  const handleSave = (data: EmployeeFormData) => {
     if (editingEmployee) {
-      const updated = employees.map(e => {
+      const updated = employees.map((e): Employee => {
         if (e.id === editingEmployee.id) {
-          return { ...e, ...data, updatedAt: new Date().toISOString() };
+          return {
+            ...e,
+            ...data,
+            updatedAt: new Date().toISOString(),
+          } as Employee;
         }
         return e;
       });
@@ -1783,13 +1813,28 @@ export default function EmployeeManagementPage() {
       const newEmp: Employee = {
         id: `emp${Date.now()}`,
         employeeId: `EMP${String(employees.length + 1).padStart(3, "0")}`,
-        ...data,
-        status: "active",
+        fullName: data.fullName,
+        mobile: data.mobile,
+        email: data.email,
         profilePhoto: "",
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth,
+        address: data.address,
+        joiningDate: data.joiningDate,
+        designation: data.designation,
+        role: data.role,
+        branch: data.branch,
+        reportingManager: data.reportingManager,
+        status: "active",
+        username: data.username,
+        pin: data.pin,
         passwordLastChanged: new Date().toISOString(),
+        forcePasswordChange: data.forcePasswordChange,
         attendance: { present: 0, absent: 0, halfDay: 0, lateEntry: 0, lastAttendance: "" },
         performance: { todaySales: 0, weeklySales: 0, monthlySales: 0, totalBills: 0, averageBill: 0, returnPercentage: 0 },
         targets: { daily: 0, weekly: 0, monthly: 0, dailyAchieved: 0, weeklyAchieved: 0, monthlyAchieved: 0 },
+        shift: data.shift,
+        shiftTiming: { start: data.shiftStart || "09:00", end: data.shiftEnd || "18:00" },
         permissions: {
           dashboard: { view: true, export: false },
           inventory: { view: false, add: false, edit: false, delete: false, stockAdjust: false },
@@ -1809,7 +1854,6 @@ export default function EmployeeManagementPage() {
         },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        shiftTiming: { start: data.shiftStart || "09:00", end: data.shiftEnd || "18:00" },
       };
       setEmployees([...employees, newEmp]);
     }
@@ -2000,7 +2044,7 @@ export default function EmployeeManagementPage() {
                         {role === "owner" && <Crown size={24} />}
                         {role === "manager" && <UserCog size={24} />}
                         {role === "cashier" && <User size={24} />}
-                        {role === "inventory" && <Package size={24} />}
+                        {/* {role === "inventory" && <Package size={24} />} */}
                         {role === "accountant" && <DollarSign size={24} />}
                         {role === "custom" && <UsersRound size={24} />}
                       </div>
